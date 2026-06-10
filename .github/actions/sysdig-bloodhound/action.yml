@@ -1,0 +1,86 @@
+name: Sysdig Bloodhound
+description: >-
+  Collect build-time context (repository, CODEOWNERS, CI system, build trigger, …)
+  alongside a Sysdig scan and push it to the Sysdig backend. Best-effort by default —
+  never fails your build unless `strict` is set.
+branding:
+  icon: search
+  color: purple
+
+inputs:
+  image:
+    description: >-
+      Image ref being scanned (tag or @sha256 digest). Multiple refs may be passed
+      whitespace/newline separated.
+    required: true
+  sysdig-url:
+    description: Sysdig backend URL.
+    required: false
+    default: https://app.sysdigcloud.com
+  version:
+    description: Bloodhound build to download (`poc` for latest, or a git sha to pin).
+    required: false
+    default: poc
+  sensors:
+    description: Restrict collection to a comma-separated set of sensors (default all).
+    required: false
+    default: ""
+  strict:
+    description: Fail this step on collection/push error (default best-effort, never fails).
+    required: false
+    default: "false"
+  no-push:
+    description: Emit JSON only; do not push to the Sysdig backend.
+    required: false
+    default: "false"
+  download-base-url:
+    description: >-
+      Base URL the binary is fetched from. Override to use a different host
+      (e.g. download.sysdig.com once available).
+    required: false
+    default: https://sysdig-bloodhound-poc.s3.amazonaws.com
+
+runs:
+  using: composite
+  steps:
+    # Inputs are bound to env vars (not interpolated into the script) to avoid
+    # shell injection. SYSDIG_SECURE_API_TOKEN is inherited from the caller's `env:`.
+    - shell: bash
+      env:
+        BH_IMAGE: ${{ inputs.image }}
+        BH_VERSION: ${{ inputs.version }}
+        BH_SENSORS: ${{ inputs.sensors }}
+        BH_STRICT: ${{ inputs.strict }}
+        BH_NO_PUSH: ${{ inputs.no-push }}
+        BH_BASE_URL: ${{ inputs.download-base-url }}
+        SYSDIG_SECURE_URL: ${{ inputs.sysdig-url }}
+      run: |
+        set -euo pipefail
+
+        case "${RUNNER_ARCH:-X64}" in
+          X64|AMD64) arch=amd64 ;;
+          ARM64)     arch=arm64 ;;
+          *) echo "bloodhound: unsupported RUNNER_ARCH='${RUNNER_ARCH:-}', defaulting to amd64" >&2; arch=amd64 ;;
+        esac
+
+        url="${BH_BASE_URL}/${BH_VERSION}/linux/${arch}/sysdig-bloodhound"
+        echo "bloodhound: downloading ${url}"
+        bin="$(mktemp)"
+        if ! curl -fsSL "${url}" -o "${bin}"; then
+          echo "bloodhound: download failed from ${url}" >&2
+          if [ "${BH_STRICT}" = "true" ]; then exit 1; fi
+          echo "bloodhound: best-effort, continuing without collection" >&2
+          exit 0
+        fi
+        chmod +x "${bin}"
+
+        args=()
+        # word-splitting on BH_IMAGE is intentional: support multiple image refs
+        for img in ${BH_IMAGE}; do
+          args+=( --image "${img}" )
+        done
+        if [ -n "${BH_SENSORS}" ];        then args+=( --metadata-sensors "${BH_SENSORS}" ); fi
+        if [ "${BH_STRICT}"  = "true" ];  then args+=( --strict ); fi
+        if [ "${BH_NO_PUSH}" = "true" ];  then args+=( --no-push ); fi
+
+        "${bin}" "${args[@]}"
