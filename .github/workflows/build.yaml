@@ -25,7 +25,7 @@ jobs:
           image-tag: myregistry/my-vuln-application:latest
           # API token for Sysdig Scanning auth
           sysdig-secure-url: https://us2.app.sysdig.com/secure
-          sysdig-secure-token: ${{ secrets.KUBELAB_SECURE_API_TOKEN }}
+          sysdig-secure-token: ${{ secrets.SYSDIG_SECURE_API_TOKEN }}
           stop-on-failed-policy-eval: true
           stop-on-processing-error: true
 
@@ -34,7 +34,7 @@ jobs:
         if: success() || failure()
         uses: ./.github/actions/sysdig-bloodhound
         env:
-          SYSDIG_SECURE_API_TOKEN: ${{ secrets.KUBELAB_SECURE_API_TOKEN }}
+          SYSDIG_SECURE_API_TOKEN: ${{ secrets.SYSDIG_SECURE_API_TOKEN }}
         with:
           image: myregistry/my-vuln-application:latest
           sysdig-url: https://us2.app.sysdig.com/secure
