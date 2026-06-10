@@ -24,7 +24,7 @@ jobs:
           # Tag of the image to analyse
           image-tag: myregistry/my-vuln-application:latest
           # API token for Sysdig Scanning auth
-          sysdig-secure-url: https://us2.app.sysdig.com/secure
+          sysdig-secure-url: https://secure.sysdig.com
           sysdig-secure-token: ${{ secrets.SYSDIG_SECURE_API_TOKEN }}
           stop-on-failed-policy-eval: true
           stop-on-processing-error: true
@@ -37,7 +37,7 @@ jobs:
           SYSDIG_SECURE_API_TOKEN: ${{ secrets.SYSDIG_SECURE_API_TOKEN }}
         with:
           image: myregistry/my-vuln-application:latest
-          sysdig-url: https://us2.app.sysdig.com/secure
+          sysdig-url: https://secure.sysdig.com
 
       - name: Upload SARIF file
         if: success() || failure() # Upload results regardless previous step fails
