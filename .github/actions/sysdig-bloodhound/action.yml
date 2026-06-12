@@ -13,6 +13,15 @@ inputs:
       Image ref being scanned (tag or @sha256 digest). Multiple refs may be passed
       whitespace/newline separated.
     required: true
+  scan-result:
+    description: >-
+      Path to the sysdig-cli-scanner JSON result (the scan-action `scanReport`
+      output, or a `--json-scan-result` file). When set, Bloodhound reads the
+      image's config digest (imageId), manifest digest, base OS and OCI labels
+      from it and unifies them with the --image entity. Best-effort: ignored if
+      the file is missing or unparseable.
+    required: false
+    default: ""
   sysdig-url:
     description: Sysdig backend URL.
     required: false
@@ -48,6 +57,7 @@ runs:
     - shell: bash
       env:
         BH_IMAGE: ${{ inputs.image }}
+        BH_SCAN_RESULT: ${{ inputs.scan-result }}
         BH_VERSION: ${{ inputs.version }}
         BH_SENSORS: ${{ inputs.sensors }}
         BH_STRICT: ${{ inputs.strict }}
@@ -79,6 +89,7 @@ runs:
         for img in ${BH_IMAGE}; do
           args+=( --image "${img}" )
         done
+        if [ -n "${BH_SCAN_RESULT}" ];    then args+=( --scan-result "${BH_SCAN_RESULT}" ); fi
         if [ -n "${BH_SENSORS}" ];        then args+=( --metadata-sensors "${BH_SENSORS}" ); fi
         if [ "${BH_STRICT}"  = "true" ];  then args+=( --strict ); fi
         if [ "${BH_NO_PUSH}" = "true" ];  then args+=( --no-push ); fi

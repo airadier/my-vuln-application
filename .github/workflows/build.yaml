@@ -38,6 +38,7 @@ jobs:
         with:
           image: myregistry/my-vuln-application:latest
           sysdig-url: https://secure.sysdig.com
+          scan-result: ${{ steps.scan.outputs.scanReport }}
 
       - name: Upload SARIF file
         if: success() || failure() # Upload results regardless previous step fails
