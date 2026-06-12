@@ -29,6 +29,15 @@ jobs:
           stop-on-failed-policy-eval: true
           stop-on-processing-error: true
 
+      # Temporary: capture the scanner's JSON result (NOT the SARIF) to validate
+      # its schema/digest field for the Bloodhound --scan-result reader.
+      - name: Upload scan report (JSON)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-report-json
+          path: ${{ steps.scan.outputs.scanReport }}
+
       - name: Sysdig Bloodhound
         # Best-effort build-context collection; runs even if the scan fails policy.
         if: success() || failure()
